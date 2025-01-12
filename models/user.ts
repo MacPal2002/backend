@@ -26,6 +26,7 @@ export interface BaseUser {
   username: string;
   passwordHash: string; // Hasło w formie hash
   role: 'student' | 'teacher' | 'admin'; // Rola użytkownika
+  tokens?: string[];
 }
 
 export type User = BaseUser & (Student | Teacher | Admin);

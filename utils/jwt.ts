@@ -1,5 +1,6 @@
 import { create, verify } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 import { User } from '../models/user.ts';
+import { DecodedToken } from "../models/token.ts"
 import { secretKey } from '../config/secrets.ts';
 import { kv } from '../config/kv.ts'; 
 
@@ -15,27 +16,27 @@ export async function blacklistToken(token: string) {
 export async function isTokenBlacklisted(token: string): Promise<boolean> {
   try {
     console.log(`Checking if token is blacklisted: ${token}`);
-
+    
     // Sprawdzamy, czy token jest na czarnej liście
     const tokenOnBlacklist = await kv.get(['blacklisted_tokens', token]);
 
-    // Sprawdzamy, czy wartość jest null lub nieistnieje
-    if (tokenOnBlacklist?.value !== null) {
+    if (tokenOnBlacklist?.value) {
       console.log(`Token ${token} is on the blacklist.`);
       return true;
-    } else {
-      console.log(`Token ${token} is not on the blacklist.`);
-      return false;
     }
+    
+    console.log(`Token ${token} is not on the blacklist.`);
+    return false;
   } catch (error) {
     console.error("Error checking if token is blacklisted:", error);
-    return false;  // Zakładamy, że token nie jest na czarnej liście w przypadku błędu
+    return false; // Zakładamy, że token nie jest na czarnej liście w przypadku błędu
   }
 }
 
 
+
 // Weryfikacja tokenu JWT
-export async function verifyToken(token: string) {
+export async function verifyToken(token: string): Promise<DecodedToken> {
   try {
     console.log('Starting token verification...');
 
@@ -50,14 +51,28 @@ export async function verifyToken(token: string) {
 
     // Sprawdzamy poprawność tokenu
     console.log('Verifying token with secretKey...');
-    const decoded = await verify(token, secretKey);
-    console.log('Decoded JWT:', decoded);  // Logowanie dekodowanego tokenu
-    return decoded;
+    
+    // verify() zwraca Payload, który musimy przekształcić na DecodedToken
+    const decoded = await verify(token, secretKey) as unknown;  // Rzutowanie na unknown
+    
+    // Teraz, kiedy mamy unknown, możemy bezpiecznie rzutować na DecodedToken
+    const decodedToken = decoded as DecodedToken;
+
+    console.log('Decoded JWT:', decodedToken);  // Logowanie dekodowanego tokenu
+
+    // Sprawdzanie, czy token nie jest przeterminowany
+    if (decodedToken.exp < Math.floor(Date.now() / 1000)) {
+      throw new Error('Token has expired');
+    }
+
+    return decodedToken;
   } catch (error) {
     console.error('JWT verification error:', error);
     throw new Error('JWT verification failed');
   }
 }
+
+
 
 
 // Funkcja do sprawdzenia, czy token ma prawidłowy format
@@ -81,12 +96,10 @@ export async function createJWT(user: User) {
 
     console.log("Creating JWT with payload:", payload);
 
-    // Sprawdzamy, czy klucz jest poprawny
     if (!secretKey) {
       throw new Error("Signing key is missing");
     }
 
-    // Generowanie tokenu JWT
     const jwt = await create({ alg: "HS256", typ: "JWT" }, payload, secretKey);
     console.log("Generated JWT:", jwt);
 
@@ -96,3 +109,4 @@ export async function createJWT(user: User) {
     throw new Error("Error creating JWT");
   }
 }
+

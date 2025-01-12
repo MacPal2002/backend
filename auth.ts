@@ -1,5 +1,5 @@
 import { kv } from './config/kv.ts';
-import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
+import { hashSync, compareSync } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { User, Student, Teacher, Admin } from './models/user.ts';
 import { createJWT } from './utils/jwt.ts';
 import { blacklistToken } from './utils/jwt.ts';
@@ -30,7 +30,9 @@ export async function registerUser<
     }
 
     // Haszowanie hasła
-    const passwordHash = await bcrypt.hash(password);
+    console.log("Hashing password...");
+    const passwordHash = await hashSync(password);
+    console.log("Password hashed successfully");
     const id = crypto.randomUUID(); // Generowanie unikalnego ID
     console.log('Generated user ID:', id);  // Logowanie ID użytkownika
 
@@ -117,7 +119,7 @@ export async function loginUser(username: string, password: string) {
     }
 
     // Porównanie hasła
-    const isValidPassword = await bcrypt.compare(password, userData.passwordHash);
+    const isValidPassword = await compareSync(password, userData.passwordHash);
     if (!isValidPassword) {
       return { message: 'Invalid credentials' };  // Niepoprawne hasło
     }

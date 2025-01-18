@@ -26,7 +26,7 @@ messagesRoutes.post('/', verifyUser, verifyAdmin, async (c: Context) => {
       body,
       date,
       time,
-      readed: false,  // Nowa wiadomość jest domyślnie nieprzeczytana
+      read: false,  // Nowa wiadomość jest domyślnie nieprzeczytana
     };
 
     // Zapisanie wiadomości w bazie danych
@@ -136,7 +136,7 @@ messagesRoutes.put('/:id', verifyUser, verifyAdmin, async (c: Context) => {
     ...messageData,
     subject: subject ?? messageData.subject,
     body: body ?? messageData.body,
-    readed: readed ?? messageData.readed,
+    read: readed ?? messageData.read,
   };
 
   await kv.set(['messages', id], updatedMessage);

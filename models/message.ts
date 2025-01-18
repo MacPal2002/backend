@@ -6,6 +6,6 @@ export interface Message {
     body: string;
     date: string;
     time: string;
-    readed: boolean;
+    read: boolean;
   }
   
